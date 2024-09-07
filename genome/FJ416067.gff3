@@ -1,0 +1,22 @@
+##gff-version 3
+#!gff-spec-version 1.21
+#!processor NCBI annotwriter
+##sequence-region FJ416067.1 1 15894
+##species https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=11234
+FJ416067.1	Genbank	region	1	15894	.	+	.	ID=FJ416067.1:1..15894;Dbxref=taxon:11234;gbkey=Src;genome=genomic;mol_type=viral cRNA;note=vaccine strain;old-name=Measles virus;strain=Shanghai-191
+FJ416067.1	Genbank	gene	56	1685	.	+	.	ID=gene-N;Name=N;gbkey=Gene;gene=N;gene_biotype=protein_coding
+FJ416067.1	Genbank	CDS	108	1685	.	+	0	ID=cds-ACN54401.1;Parent=gene-N;Dbxref=NCBI_GP:ACN54401.1;Name=ACN54401.1;gbkey=CDS;gene=N;product=nucleocapsid protein;protein_id=ACN54401.1
+FJ416067.1	Genbank	gene	1748	3402	.	+	.	ID=gene-P;Name=P;gbkey=Gene;gene=P;gene_biotype=protein_coding
+FJ416067.1	Genbank	CDS	1807	3330	.	+	0	ID=cds-ACN54402.1;Parent=gene-P;Dbxref=NCBI_GP:ACN54402.1;Name=ACN54402.1;gbkey=CDS;gene=P;product=phosphoprotein;protein_id=ACN54402.1
+FJ416067.1	Genbank	CDS	1807	2705	.	+	0	ID=cds-ACN54403.1;Parent=gene-P;Dbxref=NCBI_GP:ACN54403.1;Name=ACN54403.1;exception=RNA editing;gbkey=CDS;gene=P;product=V protein;protein_id=ACN54403.1
+FJ416067.1	Genbank	CDS	1829	2389	.	+	0	ID=cds-ACN54404.1;Parent=gene-P;Dbxref=NCBI_GP:ACN54404.1;Name=ACN54404.1;gbkey=CDS;gene=P;product=C protein;protein_id=ACN54404.1
+FJ416067.1	Genbank	sequence_feature	2498	2499	.	+	.	ID=id-P;Note=V protein mRNA modified by addition of a G nucleotide to this region;gbkey=misc_feature;gene=P
+FJ416067.1	Genbank	gene	3406	4871	.	+	.	ID=gene-M;Name=M;gbkey=Gene;gene=M;gene_biotype=protein_coding
+FJ416067.1	Genbank	CDS	3438	4445	.	+	0	ID=cds-ACN54405.1;Parent=gene-M;Dbxref=NCBI_GP:ACN54405.1;Name=ACN54405.1;gbkey=CDS;gene=M;product=matrix protein;protein_id=ACN54405.1
+FJ416067.1	Genbank	gene	4875	7247	.	+	.	ID=gene-F;Name=F;gbkey=Gene;gene=F;gene_biotype=protein_coding
+FJ416067.1	Genbank	CDS	5449	7110	.	+	0	ID=cds-ACN54406.1;Parent=gene-F;Dbxref=NCBI_GP:ACN54406.1;Name=ACN54406.1;gbkey=CDS;gene=F;product=fusion protein;protein_id=ACN54406.1
+FJ416067.1	Genbank	gene	7251	9208	.	+	.	ID=gene-H;Name=H;gbkey=Gene;gene=H;gene_biotype=protein_coding
+FJ416067.1	Genbank	CDS	7271	9124	.	+	0	ID=cds-ACN54407.1;Parent=gene-H;Dbxref=NCBI_GP:ACN54407.1;Name=ACN54407.1;gbkey=CDS;gene=H;product=hemagglutinin;protein_id=ACN54407.1
+FJ416067.1	Genbank	gene	9212	15854	.	+	.	ID=gene-L;Name=L;gbkey=Gene;gene=L;gene_biotype=protein_coding
+FJ416067.1	Genbank	CDS	9234	15785	.	+	0	ID=cds-ACN54408.1;Parent=gene-L;Dbxref=NCBI_GP:ACN54408.1;Name=ACN54408.1;Note=RNA-dependent RNA polymerase;gbkey=CDS;gene=L;product=large protein;protein_id=ACN54408.1
+

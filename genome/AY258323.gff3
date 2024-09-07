@@ -1,0 +1,14 @@
+##gff-version 3
+#!gff-spec-version 1.21
+#!processor NCBI annotwriter
+##sequence-region AY258323.1 1 9778
+##species https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=11041
+AY258323.1	Genbank	region	1	9778	.	+	.	ID=AY258323.1:1..9778;Dbxref=taxon:11041;gbkey=Src;genome=genomic;mol_type=genomic RNA;note=vaccine strain;strain=BRD-II
+AY258323.1	Genbank	CDS	41	6391	.	+	0	ID=cds-AAP82234.1;Dbxref=NCBI_GP:AAP82234.1;Name=AAP82234.1;Note=ORF1;gbkey=CDS;product=nonstructural polyprotein precursor;protein_id=AAP82234.1
+AY258323.1	Genbank	mature_protein_region_of_CDS	41	3943	.	+	.	ID=id-AAP82234.1:1..1301;Parent=cds-AAP82234.1;gbkey=Prot;product=P150
+AY258323.1	Genbank	mature_protein_region_of_CDS	3944	6388	.	+	.	ID=id-AAP82234.1:1302..2116;Parent=cds-AAP82234.1;gbkey=Prot;product=P90
+AY258323.1	Genbank	CDS	6512	9703	.	+	0	ID=cds-AAP82235.1;Dbxref=NCBI_GP:AAP82235.1;Name=AAP82235.1;Note=ORF2;gbkey=CDS;product=structural polyprotein precursor;protein_id=AAP82235.1
+AY258323.1	Genbank	mature_protein_region_of_CDS	6512	7411	.	+	.	ID=id-AAP82235.1:1..300;Parent=cds-AAP82235.1;gbkey=Prot;product=capsid protein
+AY258323.1	Genbank	mature_protein_region_of_CDS	7412	8257	.	+	.	ID=id-AAP82235.1:301..582;Parent=cds-AAP82235.1;gbkey=Prot;product=glycoprotein E2
+AY258323.1	Genbank	mature_protein_region_of_CDS	8258	9700	.	+	.	ID=id-AAP82235.1:583..1063;Parent=cds-AAP82235.1;gbkey=Prot;product=glycoprotein E1
+
