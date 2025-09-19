@@ -79,7 +79,7 @@ def run_snp_analysis(
     )
     print(" - Processed sequences stored in '序列拼接' directory.")
 
-    print("\\nAnalysis complete.")
+    print("Analysis complete.")
 
 
 def main():
@@ -120,7 +120,7 @@ def main():
         )
 
     locus = args.locus.strip()
-    assemble_dir = Path(args.assemble_dir).strip()
+    assemble_dir = Path(args.assemble_dir)
     genome_file = GENOME_DIR / f"{locus}.fasta"
     genome_ann_file = GENOME_DIR / f"{locus}.gff3"
 

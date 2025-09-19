@@ -22,7 +22,7 @@
 
     ```bash
     git clone <repository_url>
-    cd vsat
+    cd first_gen_snp
     ```
 
 2. **Create and activate a virtual environment:**

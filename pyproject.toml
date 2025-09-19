@@ -6,11 +6,11 @@ build-backend = "hatchling.build"
 name = "vsat"
 version = "0.1.0"
 authors = [
-  { name="Your Name", email="you@example.com" },
+  { name="wangfff8", email="wffhznu825@163.com" },
 ]
 description = "A tool for analyzing Single Nucleotide Polymorphisms (SNPs) in viral genomes."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
