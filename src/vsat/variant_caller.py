@@ -6,7 +6,6 @@ It coordinates the reading of data, alignment, and report generation.
 """
 import argparse
 from pathlib import Path
-from typing import Any
 from . import data_handler, snp_analyzer, report_generator
 
 
@@ -17,17 +16,17 @@ GENOME_DIR = DATA_DIR / "genomes"
 REF_GENOME_FILE = DATA_DIR / "ref_genome.json"
 
 
-def _print_reference_genomes(genome_dict: dict[str, Any]) -> None:
+def _print_reference_genomes(genome_dict: dict[str, list[str]]) -> None:
     """Prints the available reference genomes in a formatted way."""
-    print("Available reference loci:")
+    print("Available reference genomes:")
     for virus_name, loci in genome_dict.items():
         print(f"{virus_name:<10}{', '.join(loci)}")
 
 
 def run_snp_analysis(
-    assembled_sequences_dir: str | Path,
     ref_genome_fasta_file: str | Path,
     ref_genome_gff_file: str | Path,
+    assembled_sequences_dir: str | Path
 ) -> None:
     """
     Orchestrates the entire SNP analysis workflow.
@@ -39,11 +38,11 @@ def run_snp_analysis(
     """
     print("Starting SNP analysis...")
 
-    print(f"Loading annotation from: {ref_genome_gff_file}")
-    ref_peptides_dict = data_handler.parse_gff(ref_genome_gff_file)
-
     print(f"Loading reference genome from: {ref_genome_fasta_file}")
     ref_name, ref_seq = data_handler.read_genome_sequence(ref_genome_fasta_file)
+
+    print(f"Loading reference genome annotation from: {ref_genome_gff_file}")
+    ref_peptides_dict = data_handler.parse_gff(ref_genome_gff_file)
 
     print(f"Loading assembled sequences from: {assembled_sequences_dir}")
     genome_seq_dict = data_handler.read_assembled_sequences(assembled_sequences_dir)
@@ -93,11 +92,11 @@ def main():
     parser.add_argument(
         "-g",
         "--locus",
-        help=f"The locus of the virus to analyze. See available loci in: {GENOME_DIR}",
+        help=f"The locus of the virus to analyze. See available locus in: {GENOME_DIR}",
     )
     parser.add_argument(
         "-s",
-        "--assemble_dir",
+        "--assembly_dir",
         help="Directory containing the assembled sequences (as .seq files).",
     )
     parser.add_argument(
@@ -114,25 +113,25 @@ def main():
         _print_reference_genomes(genome_dict)
         exit()
 
-    if not args.locus or not args.assemble_dir:
+    if not args.locus or not args.assembly_dir:
         parser.error(
-            "Both --locus and --assemble_dir are required unless --list is specified."
+            "Both --locus and --assembly_dir are required unless --list is specified."
         )
 
     locus = args.locus.strip()
-    assemble_dir = Path(args.assemble_dir)
-    genome_file = GENOME_DIR / f"{locus}.fasta"
-    genome_ann_file = GENOME_DIR / f"{locus}.gff3"
+    assembly_dir = Path(args.assembly_dir)
+    ref_genome_file = GENOME_DIR / f"{locus}.fasta"
+    ref_genome_ann_file = GENOME_DIR / f"{locus}.gff3"
 
-    if not genome_file.is_file():
-        parser.error(f"Genome file not found: {genome_file}")
-    if not genome_ann_file.is_file():
-        parser.error(f"Annotation file not found: {genome_ann_file}")
+    if not ref_genome_file.is_file():
+        parser.error(f"Genome file not found: {ref_genome_file}")
+    if not ref_genome_ann_file.is_file():
+        parser.error(f"Annotation file not found: {ref_genome_ann_file}")
 
     run_snp_analysis(
-        assembled_sequences_dir=assemble_dir,
-        ref_genome_fasta_file=genome_file,
-        ref_genome_gff_file=genome_ann_file,
+        ref_genome_fasta_file=ref_genome_file,
+        ref_genome_gff_file=ref_genome_ann_file,
+        assembled_sequences_dir=assembly_dir
     )
 
 

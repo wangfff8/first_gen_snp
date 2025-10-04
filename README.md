@@ -11,7 +11,7 @@
 
 ## Requirements
 
-- Python 3.13+
+- Python 3.10+
 - [uv](https://github.com/astral-sh/uv) (recommended for environment management)
 - **[CAP3](https://faculty.sites.iastate.edu/xqhuang/cap3-assembly-program)**: Must be installed and available in your system's `PATH`.
 - **[SeqKit](https://github.com/shenwei356/seqkit/releases)**: Must be installed and available in your system's `PATH`.
@@ -66,7 +66,7 @@ The VSAT package can be used either directly from the command line or as a libra
     - Update the `data/ref_genome.json` file to map a short name (locus) to your new genome files.
 
 2. **Raw Data**:
-    - Organize your raw sequencing files (`.seq`, `.ab1`, etc.) in a dedicated directory (e.g., `/path/to/your_project/rawdata`).
+    - Organize your raw sequencing files (`.seq`, `.ab1`, etc.) in a dedicated directory (e.g., `/path/to/raw_data`).
 
 3. **ID Map File**:
     - Create an ID map file (e.g., `id_map.xls`). This is a two-column, tab-separated file that maps a unique identifier from your raw data filenames to a desired sample name.
@@ -87,10 +87,11 @@ Example command:
 
 ```bash
 python -m vsat.genome_assembler \
-    --rawdata /path/to/rawdata \
+    --id_map /path/to/id_map.xls \
+    --raw_data /path/to/raw_data \
     --split_data /path/to/split_data \
-    --assemble_dir /path/to/assemble \
-    --id_map /path/to/id_map.xls
+    --assembly_dir /path/to/assembly_dir \
+    
 ```
 
 #### Step 3: Manual Finishing
@@ -129,17 +130,17 @@ You can also import and use the workflow functions directly in your Python scrip
 from vsat import genome_assembler
 
 # Define paths for the assembly workflow
-raw_data = "/path/to/rawdata"
 id_map = "/path/to/id_map.xls"
+raw_data = "/path/to/raw_data"
 split_dir = "/path/to/split_data"
-assemble_output = "/path/to/assemble"
+assembly_dir = "/path/to/assembly_dir"
 
 # Run the assembly process
 genome_assembler.run_genome_assembly(
-    raw_data_dir=raw_data,
     id_map_file=id_map,
+    raw_data_dir=raw_data,
     split_data_dir=split_dir,
-    assemble_dir=assemble_output,
+    assembly_dir=assembly_dir,
 )
 ```
 
@@ -155,8 +156,8 @@ ref_gff = "data/genomes/<LOCUS_NAME>.gff3"
 
 # Run the SNP analysis
 variant_caller.run_snp_analysis(
-    assembled_sequences_dir=assembled_dir,
     ref_genome_fasta_file=ref_fasta,
     ref_genome_gff_file=ref_gff,
+    assembled_sequences_dir=assembled_dir,
 )
 ```

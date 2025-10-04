@@ -7,7 +7,7 @@ from pathlib import Path
 from . import data_handler
 
 
-def _run_cap3_for_samples(assemble_dir: str | Path, sample_list: list[str]) -> None:
+def _run_cap3_for_samples(assembly_dir: str | Path, sample_list: list[str]) -> None:
     """
     Runs the core assembly commands (CAP3 and SeqKit) for each sample.
 
@@ -16,13 +16,13 @@ def _run_cap3_for_samples(assemble_dir: str | Path, sample_list: list[str]) -> N
     separate files. It requires CAP3 and SeqKit to be in the system's PATH.
 
     Args:
-        assemble_dir: The base directory where sample subdirectories are located.
+        assembly_dir: The directory to store assembled contigs for each sample.
         sample_list: A list of sample names to process.
     """
     print("Starting assembly process...")
-    assemble_dir = Path(assemble_dir)
+    assembly_dir = Path(assembly_dir)
     for sample in sample_list:
-        sample_dir = assemble_dir / sample
+        sample_dir = assembly_dir / sample
         data_handler.mkdir(sample_dir)
 
         fasta_file = sample_dir / f"{sample}.fasta"
@@ -38,10 +38,10 @@ def _run_cap3_for_samples(assemble_dir: str | Path, sample_list: list[str]) -> N
 
 
 def run_genome_assembly(
-    raw_data_dir: str | Path,
     id_map_file: str | Path,
+    raw_data_dir: str | Path,
     split_data_dir: str | Path,
-    assemble_dir: str | Path,
+    assembly_dir: str | Path,
 ) -> None:
     """
     Orchestrates the entire genome assembly workflow.
@@ -56,7 +56,7 @@ def run_genome_assembly(
         raw_data_dir: Directory containing the raw sequencing files (.seq, .ab1).
         id_map_file: Path to the ID map file mapping file IDs to sample names.
         split_data_dir: Directory to store the intermediate split data.
-        assemble_dir: Directory to store the final assembled contigs.
+        assembly_dir: Directory to store the final assembled contigs.
     """
     print("Loading ID map...")
     id_map_dict = data_handler.read_id_map(id_map_file)
@@ -67,9 +67,9 @@ def run_genome_assembly(
     data_handler.split_data(id_map_dict, raw_data_dir, split_data_dir)
 
     print("Combining sequences into FASTA files...")
-    data_handler.combine_seq2fasta(split_data_dir, assemble_dir)
+    data_handler.combine_seq2fasta(split_data_dir, assembly_dir)
 
-    _run_cap3_for_samples(assemble_dir, sample_list)
+    _run_cap3_for_samples(assembly_dir, sample_list)
 
 
 def main():
@@ -83,25 +83,25 @@ def main():
     parser = argparse.ArgumentParser(
         description="Assemble raw sequencing data using CAP3."
     )
-    parser.add_argument(
-        "--rawdata", required=True, help="Directory containing raw sequencing files."
-    )
-    parser.add_argument(
-        "--split_data",
-        required=True,
-        help="Directory to store intermediate split data.",
-    )
-    parser.add_argument(
-        "--assemble_dir", required=True, help="Directory to store assembled contigs."
-    )
     parser.add_argument("--id_map", required=True, help="Path to the ID map file.")
+    parser.add_argument(
+        "--raw_data", required=True, help="Directory containing raw sequencing files."
+    )
+    parser.add_argument(
+        "--split_data", required=True, help="Directory to store intermediate split data."
+    )
+    parser.add_argument(
+        "--assembly_dir", required=True, help="Directory to store assembled contigs."
+    )
+
     args = parser.parse_args()
 
     run_genome_assembly(
-        raw_data_dir=args.rawdata,
         id_map_file=args.id_map,
+        raw_data_dir=args.raw_data,
         split_data_dir=args.split_data,
-        assemble_dir=args.assemble_dir,
+        assembly_dir=args.assembly_dir,
+        
     )
 
 

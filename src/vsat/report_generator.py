@@ -3,7 +3,6 @@
 
 import shutil
 from pathlib import Path
-from typing import Any
 from . import data_handler, snp_analyzer
 
 
@@ -26,11 +25,11 @@ def write_snp_results_to_txt(
     ref_seq: str,
 ) -> None:
     """Writes a detailed SNP analysis report in plain text format."""
-    with open("snp_result.txt", "w", encoding="utf-8") as res:
+    with open("snp_result.txt", "w", encoding="utf-8") as fp:
         for (sample, mutated_genome_seq), mutate_sites in zip(
             aligned_genome_seq_dict.items(), mutate_sites_list
         ):
-            res.write(f"{sample}:\n")
+            fp.write(f"{sample}:\n")
 
             if not mutate_sites:
                 continue
@@ -53,14 +52,14 @@ def write_snp_results_to_txt(
                         ) + snp_analyzer.get_snp_info(
                             nuc_site, ref_seq, mutated_genome_seq, coding_range
                         )
-
                         template_key = 4 if snp_info[-1] != snp_info[-2] else 1
-                        res.write(templates[template_key].format(*snp_info))
+                        fp.write(templates[template_key].format(*snp_info))
 
-            out_cds_sites = sorted(list(mutated_sites - in_cds_sites))
+
+            out_cds_sites = sorted(mutated_sites - in_cds_sites)
             for nuc_site in out_cds_sites:
-                res.write(templates[7].format(nuc_site, mutates_dict[nuc_site]))
-            res.write("\n")
+                fp.write(templates[7].format(nuc_site, mutates_dict[nuc_site]))
+            fp.write("\n")
 
 
 def write_snp_results_to_xls(
@@ -70,7 +69,7 @@ def write_snp_results_to_xls(
     ref_seq: str,
 ) -> None:
     """Writes a tab-separated SNP analysis report compatible with Excel."""
-    with open("snp_result.xls", "w", encoding="gbk") as content:
+    with open("snp_result.xls", "w", encoding="utf-8") as fp:
         # Define and write the header
         header = [
             "Sample",
@@ -79,11 +78,11 @@ def write_snp_results_to_xls(
             "Product",
             "AA Pos",
             "Ref Codon",
-            "Sample Codon",
+            "Mut Codon",
             "Ref AA",
-            "Sample AA",
+            "Mut AA",
         ]
-        content.write("\t".join(header) + "\n")
+        fp.write("\t".join(header) + "\n")
         for (sample, mutated_genome_seq), mutate_sites in zip(
             aligned_genome_seq_dict.items(), mutate_sites_list
         ):
@@ -94,12 +93,12 @@ def write_snp_results_to_xls(
                 int(m.split("_")[0]): m.split("_")[1] for m in mutate_sites.split(",")
             }
             mutated_sites = set(mutates_dict.keys())
+            in_cds_sites = set()
 
-            for nuc_site in sorted(list(mutated_sites)):
-                in_cds = False
+            for nuc_site in sorted(mutated_sites):
                 for product_name, coding_range in ref_peptides_dict.items():
                     if coding_range[0] <= nuc_site <= coding_range[1]:
-                        in_cds = True
+                        in_cds_sites.add(nuc_site)
                         snp_info = (
                             sample,
                             nuc_site,
@@ -108,11 +107,13 @@ def write_snp_results_to_xls(
                         ) + snp_analyzer.get_snp_info(
                             nuc_site, ref_seq, mutated_genome_seq, coding_range
                         )
-                        content.write("\t".join(map(str, snp_info)) + "\n")
+                        fp.write("\t".join(map(str, snp_info)) + "\n")
                         break
-                if not in_cds:
-                    content.write(f"{sample}\t{nuc_site}\t{mutates_dict[nuc_site]}\n")
 
+            out_cds_sites = sorted(mutated_sites - in_cds_sites)
+            for nuc_site in out_cds_sites:
+                fp.write(f"{sample}\t{nuc_site}\t{mutates_dict[nuc_site]}\n")
+            fp.write("\n")
 
 def align_stat(
     ref_peptides_dict: dict[str, tuple[int, int]],
@@ -128,7 +129,7 @@ def align_stat(
         for sample, sample_seq in aligned_genome_seq_dict.items():
             stat.write(f"{sample}\t{snp_analyzer.cal_identity(ref_seq, sample_seq)}\t")
             pep_align_rate = []
-            for pep_id, coding_range in ref_peptides_dict.items():
+            for product_name, coding_range in ref_peptides_dict.items():
                 ref_nuc_seq = ref_seq[coding_range[0] - 1 : coding_range[1]]
                 qry_nuc_seq = sample_seq[coding_range[0] - 1 : coding_range[1]]
                 ref_aa_seq = snp_analyzer.get_aa_seq(ref_nuc_seq)
@@ -138,7 +139,7 @@ def align_stat(
 
 
 def store_sequence(
-    assemble_dir: str | Path,
+    assembly_dir: str | Path,
     aligned_genome_seq_dict: dict[str, str],
     ref_peptides_dict: dict[str, tuple[int, int]],
     ref_genome_file: str | Path,
@@ -147,7 +148,7 @@ def store_sequence(
     """
     Stores the processed sequences, categorized by product, into a directory structure.
     """
-    assemble_dir = Path(assemble_dir)
+    assembly_dir = Path(assembly_dir)
     out_seq_dir = Path(out_seq_dir)
     ref_genome_file = Path(ref_genome_file)
     data_handler.mkdir(out_seq_dir)
@@ -158,7 +159,7 @@ def store_sequence(
     if ref_genome_file.exists():
         shutil.copy(ref_genome_file, genome_dir)
 
-    for sample_seq_file in assemble_dir.glob("*.seq"):
+    for sample_seq_file in assembly_dir.glob("*.seq"):
         if sample_seq_file.exists():
             shutil.copy(sample_seq_file, genome_dir)
 
@@ -168,20 +169,20 @@ def store_sequence(
     data_handler.mkdir(nuc_dir)
     data_handler.mkdir(pep_dir)
 
-    for i, (pep_id, coding_range) in enumerate(ref_peptides_dict.items(), 1):
-        pep_id_safe = pep_id.replace("/", "_")
-        nuc_path = nuc_dir / f"{i}_{pep_id_safe}"
-        pep_path = pep_dir / f"{i}_{pep_id_safe}"
+    for i, (product_name, coding_range) in enumerate(ref_peptides_dict.items(), 1):
+        product_name_safe = product_name.replace("/", "_")
+        nuc_path = nuc_dir / f"{i}_{product_name_safe}"
+        pep_path = pep_dir / f"{i}_{product_name_safe}"
         data_handler.mkdir(nuc_path)
         data_handler.mkdir(pep_path)
 
         for sample, sample_seq in aligned_genome_seq_dict.items():
-            fasta_file = f"{sample}_{pep_id_safe}.fa"
+            seq_id = f"{sample}_{product_name_safe}"
             nuc_seq = sample_seq[coding_range[0] - 1 : coding_range[1]]
             aa_seq = snp_analyzer.get_aa_seq(nuc_seq)
 
-            with open(nuc_path / fasta_file, "w", encoding="utf-8") as n:
-                n.write(f">{fasta_file}\n{nuc_seq}\n")
+            with open(nuc_path / f"{seq_id}_nuc.fa", "w", encoding="utf-8") as n:
+                n.write(f">{sample} {product_name_safe}\n{nuc_seq}\n")
 
-            with open(pep_path / fasta_file, "w", encoding="utf-8") as p:
-                p.write(f">{fasta_file}\n{aa_seq}\n")
+            with open(pep_path / f"{seq_id}_pep.fa", "w", encoding="utf-8") as p:
+                p.write(f">{sample} {product_name_safe}\n{aa_seq}\n")

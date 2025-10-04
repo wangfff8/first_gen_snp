@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
-import json
 import re
+import json
 import shutil
 from itertools import chain
 from pathlib import Path
-from typing import Any
 
 
 def mkdir(dir_path: str | Path) -> None:
@@ -14,7 +13,7 @@ def mkdir(dir_path: str | Path) -> None:
     Path(dir_path).mkdir(parents=True, exist_ok=True)
 
 
-def load_reference_genomes(genome_file: str | Path) -> dict[str, Any]:
+def load_reference_genomes(genome_file: str | Path) -> dict[str, list[str]]:
     """Loads reference genome metadata from a JSON file."""
     with open(genome_file, 'r', encoding='utf-8') as f:
         return json.load(f)
@@ -32,13 +31,14 @@ def read_genome_sequence(seq_file: str | Path) -> tuple[str, str]:
     """
     with open(seq_file, "r", encoding="utf-8") as f:
         seq_id = ""
-        seq = ""
+        seq = []
         for line in f:
             if line.startswith(">"):
                 seq_id = line.strip().split()[0][1:]
             else:
-                seq += line.strip().upper()
-    return seq_id, seq
+                seq.append(line.strip().upper())
+        
+    return seq_id, ''.join(seq)
 
 
 def read_assembled_sequences(directory: str | Path) -> dict[str, str]:
@@ -155,7 +155,7 @@ def split_data(id_map: dict[str, str], raw_data_path: str | Path, out_path: str 
                     shutil.copy(file_, pdf_out_path)
 
 
-def combine_seq2fasta(split_data_path: str | Path, assemble_dir: str | Path) -> None:
+def combine_seq2fasta(split_data_path: str | Path, assembly_dir: str | Path) -> None:
     """
     Combines individual .seq files for each sample into a single FASTA file.
 
@@ -163,34 +163,32 @@ def combine_seq2fasta(split_data_path: str | Path, assemble_dir: str | Path) -> 
 
     Args:
         split_data_path: The directory where split_data organized the files.
-        assemble_dir: The base directory where the final FASTA files will be written.
+        assembly_dir: The base directory where the final FASTA files will be written.
     """
     split_data_path = Path(split_data_path)
-    assemble_dir = Path(assemble_dir)
+    assembly_dir = Path(assembly_dir)
     for sample_path in split_data_path.iterdir():
         if not sample_path.is_dir():
             continue
         sample_name = sample_path.name
-        sample_dir = sample_path / 'seq'
-        if not sample_dir.is_dir():
+        sample_seq_dir = sample_path / 'seq'
+        if not sample_seq_dir.is_dir():
             continue
 
         # Create the output directory for the sample in the assembly folder
-        sample_out_path = assemble_dir / sample_name
+        sample_out_path = assembly_dir / sample_name
         mkdir(sample_out_path)
-
         output_fasta_file = sample_out_path / f"{sample_name}.fasta"
-
         with open(output_fasta_file, "w", encoding="utf-8") as o:
-            seq_files = sorted(sample_dir.glob("*.seq"))
-            for seq_filepath in seq_files:
-                seq_name = seq_filepath.stem
-                with open(seq_filepath, "r", encoding="utf-8") as r:
+            seq_files = sorted(sample_seq_dir.glob("*.seq"))
+            for seq_file in seq_files:
+                seq_name = seq_file.stem
+                with open(seq_file, "r", encoding="utf-8") as r:
                     o.write(f">{seq_name}\n")
                     o.write(r.read().strip() + "\n")
 
 
-def convert_seq2fasta(path: str | Path, out_path: str | Path) -> None:
+def convert_seq2fasta(in_path: str | Path, out_path: str | Path) -> None:
     """
     Converts individual .seq files for each sample into separate FASTA files.
 
@@ -199,13 +197,13 @@ def convert_seq2fasta(path: str | Path, out_path: str | Path) -> None:
     output directory.
 
     Args:
-        path: The root directory containing the split sample data.
+        in_path: The root directory containing the split sample data.
         out_path: The root directory where new sample directories and .fasta
             files will be created.
     """
-    path = Path(path)
+    in_path = Path(in_path)
     out_path = Path(out_path)
-    for seq_file_fullname in path.rglob("*.seq"):
+    for seq_file_fullname in in_path.rglob("*.seq"):
         # Assumes a directory structure of .../sample_name/seq/
         sample_name = seq_file_fullname.parent.parent.name
         sample_out_path = out_path / sample_name

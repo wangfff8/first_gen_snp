@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
-from typing import Any
-
-
 # Codon to Amino Acid mapping
 # Format: [Single Letter, Three Letter, Chinese Name]
 aa_dict: dict[str, list[str]] = {
@@ -76,8 +73,6 @@ def find_mutations(ref_seq: str, query_seq: str) -> str:
 
 def cal_identity(seq1: str, seq2: str) -> str:
     """Calculates the identity percentage between two sequences."""
-    if not seq1:
-        return "0.00%"
     matches = sum(1 for x, y in zip(seq1, seq2) if x == y)
     return f"{(matches / len(seq1)):.2%}"
 
