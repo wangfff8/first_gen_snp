@@ -5,13 +5,13 @@
 ## Features
 
 - Automates the initial assembly of raw sequencing data using CAP3.
-- Identifies SNPs by comparing the assembled genome to a reference sequence.
+- Identifies SNPs by comparing the assembled genome to a reference sequence.  
 - Provides detailed information about mutations, including their impact on amino acid coding.
 - Designed as an importable library, allowing for easy integration into custom workflows.
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.12+  
 - [uv](https://github.com/astral-sh/uv) (recommended for environment management)
 - **[CAP3](https://faculty.sites.iastate.edu/xqhuang/cap3-assembly-program)**: Must be installed and available in your system's `PATH`.
 - **[SeqKit](https://github.com/shenwei356/seqkit/releases)**: Must be installed and available in your system's `PATH`.
@@ -161,3 +161,4 @@ variant_caller.run_snp_analysis(
     assembled_sequences_dir=assembled_dir,
 )
 ```
+
