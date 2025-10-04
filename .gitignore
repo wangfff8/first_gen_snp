@@ -94,7 +94,7 @@ venv.bak/
 CLAUDE.md
 
 #Ignore vscode AI rules
-.github\instructions\codacy.instructions.md
+.github/instructions/codacy.instructions.md
 
 # Example
 examples/mazhen_20240827/麻疹_results_20240903.zip
