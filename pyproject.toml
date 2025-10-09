@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vsat"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
   { name="wangfff8", email="wffhznu825@163.com" },
 ]
@@ -16,6 +16,9 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+    "pandas>=2.2.2",
+]
 
 [tool.hatch.build.target.wheel]
-package = "vsat"
+package = "/src/vsat"

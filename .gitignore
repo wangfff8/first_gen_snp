@@ -94,7 +94,17 @@ venv.bak/
 CLAUDE.md
 
 #Ignore vscode AI rules
-.github/instructions/codacy.instructions.md
+.github/instructions/
 
 # Example
-examples/mazhen_20240827/麻疹_results_20240903.zip
+# Ignore all contents within the example directory
+examples/mazhen_20240827/*
+
+# But do not ignore these specific subdirectories and files
+!examples/mazhen_20240827/raw_data/
+!examples/mazhen_20240827/id_map.xls
+!examples/mazhen_20240827/assembly_dir/
+examples/mazhen_20240827/assembly_dir/Me2024074S05_01-3
+
+# uv
+uv.lock

@@ -18,13 +18,13 @@ echo ""
 #
 # IMPORTANT:
 # 1. Uncomment the `python -m vsat.variant_caller ...` line below.
-# 2. Replace `<locus_name>` with a valid locus name from the list above.
-# 3. Replace `/path/to/final_assembly_dir` with the actual path to the directory
-#    containing your final, manually assembled `.seq` files.
+# 2. Replace `locus_name` with a valid locus name from the list above.
+# 3. Replace `/path/to/final_assembly_dir` with the path to your assembled sequences.
+# 4. Replace `/path/to/output_dir` with the path where you want to save the results.
 #
 echo "INFO: To run SNP detection, please edit this script and uncomment the following line."
 echo "INFO: Replace the placeholder values with your specific data."
 
-# python -m vsat.variant_caller -g <locus_name> -s /path/to/final_assembly_dir
+# python -m vsat.variant_caller -g locus_name -s /path/to/final_assembly_dir [-o /path/to/output_dir]
 
 echo "Script execution finished."
