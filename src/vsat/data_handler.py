@@ -1,5 +1,10 @@
-#!/usr/bin/env python3
-# -*- coding:utf-8 -*-
+"""
+This module provides utility functions for data handling and file I/O.
+
+It includes functions for creating directories, parsing various bioinformatics
+file formats (FASTA, GFF3, custom ID maps), and organizing raw sequencing
+data into a structured format for analysis.
+"""
 
 import re
 import json
@@ -9,58 +14,88 @@ from pathlib import Path
 
 
 def mkdir(dir_path: str | Path) -> None:
-    """Creates a directory if it does not already exist."""
+    """Create a directory, including any necessary parent directories."""
     Path(dir_path).mkdir(parents=True, exist_ok=True)
 
 
 def load_reference_genomes(genome_file: str | Path) -> dict[str, list[str]]:
-    """Loads reference genome metadata from a JSON file."""
+    """
+    Load reference genome metadata from a JSON file.
+
+    Args:
+        genome_file: The path to the JSON file containing genome metadata.
+
+    Returns:
+        A dictionary parsed from the JSON file.
+    """
     with open(genome_file, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 
 def read_genome_sequence(seq_file: str | Path) -> tuple[str, str]:
     """
-    Reads a single sequence file in FASTA-like format.
+    Read a single FASTA-like file and standardize its format in place.
+
+    This function reads a sequence file, extracts the first word of the header
+    as the sequence ID, and consolidates the sequence onto a single line.
+
+    Note:
+        This function has a significant side effect: it overwrites the original
+        file (`seq_file`) with the standardized FASTA content.
 
     Args:
         seq_file: The path to the sequence file.
 
     Returns:
-        A tuple containing the sequence ID and the sequence content in uppercase.
+        A tuple containing the sequence ID and the full sequence in uppercase.
     """
-    with open(seq_file, "r", encoding="utf-8") as f:
-        seq_id = ""
-        seq = []
-        for line in f:
-            if line.startswith(">"):
-                seq_id = line.strip().split()[0][1:]
-            else:
-                seq.append(line.strip().upper())
-        
-    return seq_id, ''.join(seq)
+    seq_file_path = Path(seq_file)
+
+    with open(seq_file_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    seq_id = ""
+    seq_parts = []
+    for line in lines:
+        if line.startswith(">"):
+            seq_id = line.strip().split()[0][1:]
+        else:
+            seq_parts.append(line.strip().upper())
+
+    # If no FASTA header is found, use the file's stem as the ID.
+    if not seq_id:
+        seq_id = seq_file_path.stem
+
+    sequence = "".join(seq_parts)
+
+    # Overwrite the original file with the standardized format.
+    with open(seq_file_path, "w", encoding="utf-8") as f:
+        f.write(f">{seq_id}\n{sequence}\n")
+
+    return seq_id, sequence
 
 
 def read_assembled_sequences(directory: str | Path) -> dict[str, str]:
     """
-    Reads all .seq files in a given directory into a dictionary.
+    Read all .seq files in a directory and load them into a dictionary.
 
     Args:
-        directory: The path to the directory containing .seq files.
+        directory: The path to the directory containing the .seq files.
 
     Returns:
         A dictionary mapping sequence names to their corresponding sequences.
     """
     genome_seq_dict = {}
-    for genome_file in Path(directory).glob("*.seq"):
-        seq_name, seq = read_genome_sequence(genome_file)
+    # Sort the glob results to ensure a consistent processing order.
+    for genome_file in sorted(Path(directory).glob("*.seq")):
+        seq_name, seq = read_genome_sequence(seq_file=genome_file)
         genome_seq_dict[seq_name] = seq
     return genome_seq_dict
 
 
 def parse_gff(gff3_file: str | Path) -> dict[str, tuple[int, int]]:
     """
-    Parses a GFF3 file and extracts product names and their coding regions (CDS).
+    Parse a GFF3 file to extract coding regions (CDS) and their product names.
 
     Args:
         gff3_file: The path to the GFF3 annotation file.
@@ -77,7 +112,9 @@ def parse_gff(gff3_file: str | Path) -> dict[str, tuple[int, int]]:
             if len(fields) != 9:
                 continue
 
+            # We are only interested in 'CDS' features.
             if fields[2] == "CDS":
+                # Extract the product name from the attributes field.
                 if match := re.search('product=(.*?)(?:;|$)', fields[8]):
                     product_name = match.group(1)
                     if product_name not in coding_dict:
@@ -88,13 +125,14 @@ def parse_gff(gff3_file: str | Path) -> dict[str, tuple[int, int]]:
 
 def read_id_map(id_map_file: str | Path) -> dict[str, str]:
     """
-    Reads a two-column (source_id, target_name) ID map file.
+    Read a two-column, space-separated ID map file.
 
     Args:
         id_map_file: The path to the ID map file.
 
     Returns:
-        A dictionary mapping source IDs to target sample names.
+        A dictionary mapping source IDs from the first column to target sample
+        names from the second column.
     """
     id_map_dict = {}
     if Path(id_map_file).is_file():
@@ -108,15 +146,20 @@ def read_id_map(id_map_file: str | Path) -> dict[str, str]:
 
 def split_data(id_map: dict[str, str], raw_data_path: str | Path, out_path: str | Path) -> None:
     """
-    Splits and organizes raw sequencing data based on an ID map.
+    Organize raw sequencing data into sample-specific directories based on an ID map.
 
-    Walks through the raw_data_path, finds all .seq, .ab1, and .pdf files,
-    and copies them into sample-specific subdirectories in the out_path.
+    This function walks through the `raw_data_path`, finds all relevant files
+    (.seq, .ab1, .pdf), and copies them into subdirectories under `out_path`,
+    named according to the sample names in the `id_map`.
+
+    Note:
+        The script will print an error and exit if the number of .seq and .ab1
+        files in the source directory do not match.
 
     Args:
         id_map: A dictionary mapping file identifiers to sample names.
-        raw_data_path: The path to the directory with raw sequencing files.
-        out_path: The base directory for the organized output.
+        raw_data_path: The path to the directory containing raw sequencing files.
+        out_path: The base directory for the organized, sample-specific output.
     """
     raw_data_path = Path(raw_data_path)
     out_path = Path(out_path)
@@ -134,17 +177,18 @@ def split_data(id_map: dict[str, str], raw_data_path: str | Path, out_path: str 
 
     for file_id, sample_name in id_map.items():
         sample_out_path = out_path / sample_name
-        # Create subdirectories for each file type
+        # Create subdirectories for each file type within the sample folder.
         seq_out_path = sample_out_path / 'seq'
         ab1_out_path = sample_out_path / 'ab1'
-        mkdir(seq_out_path)
-        mkdir(ab1_out_path)
+        mkdir(dir_path=seq_out_path)
+        mkdir(dir_path=ab1_out_path)
 
         pdf_out_path = None
         if pdf_list:
             pdf_out_path = sample_out_path / 'pdf'
-            mkdir(pdf_out_path)
+            mkdir(dir_path=pdf_out_path)
 
+        # Copy files that match the current file_id into the corresponding folders.
         for file_ in chain(seq_list, ab1_list, pdf_list):
             if re.search(file_id, file_.name):
                 if file_.suffix == '.seq':
@@ -157,13 +201,16 @@ def split_data(id_map: dict[str, str], raw_data_path: str | Path, out_path: str 
 
 def combine_seq2fasta(split_data_path: str | Path, assembly_dir: str | Path) -> None:
     """
-    Combines individual .seq files for each sample into a single FASTA file.
+    Combine all .seq files for a sample into a single multi-FASTA file.
 
-    This is a necessary preprocessing step for the CAP3 assembler.
+    This function serves as a preprocessing step for assemblers like CAP3, which
+    expect a single input file containing all reads for a given sample.
 
     Args:
-        split_data_path: The directory where split_data organized the files.
-        assembly_dir: The base directory where the final FASTA files will be written.
+        split_data_path: The directory containing sample-specific subdirectories,
+                         each with its own `seq` folder of .seq files.
+        assembly_dir: The base directory where the output multi-FASTA files will
+                      be stored, inside sample-specific subfolders.
     """
     split_data_path = Path(split_data_path)
     assembly_dir = Path(assembly_dir)
@@ -175,9 +222,9 @@ def combine_seq2fasta(split_data_path: str | Path, assembly_dir: str | Path) -> 
         if not sample_seq_dir.is_dir():
             continue
 
-        # Create the output directory for the sample in the assembly folder
+        # Create the output directory for the sample in the assembly folder.
         sample_out_path = assembly_dir / sample_name
-        mkdir(sample_out_path)
+        mkdir(dir_path=sample_out_path)
         output_fasta_file = sample_out_path / f"{sample_name}.fasta"
         with open(output_fasta_file, "w", encoding="utf-8") as o:
             seq_files = sorted(sample_seq_dir.glob("*.seq"))
@@ -190,16 +237,16 @@ def combine_seq2fasta(split_data_path: str | Path, assembly_dir: str | Path) -> 
 
 def convert_seq2fasta(in_path: str | Path, out_path: str | Path) -> None:
     """
-    Converts individual .seq files for each sample into separate FASTA files.
+    Convert individual .seq files into properly formatted .fasta files.
 
-    This function traverses a directory structure organized by sample, finds all
-    .seq files, and creates a corresponding .fasta file for each one in the
-    output directory.
+    This function traverses a directory of split sample data, finds all .seq
+    files, and creates a corresponding .fasta file for each one in the output
+    directory, adding a FASTA header based on the original filename.
 
     Args:
-        in_path: The root directory containing the split sample data.
+        in_path: The root directory containing the split sample data (e.g., 'split_data').
         out_path: The root directory where new sample directories and .fasta
-            files will be created.
+                  files will be created.
     """
     in_path = Path(in_path)
     out_path = Path(out_path)
@@ -207,7 +254,7 @@ def convert_seq2fasta(in_path: str | Path, out_path: str | Path) -> None:
         # Assumes a directory structure of .../sample_name/seq/
         sample_name = seq_file_fullname.parent.parent.name
         sample_out_path = out_path / sample_name
-        mkdir(sample_out_path)
+        mkdir(dir_path=sample_out_path)
 
         seq_name = seq_file_fullname.stem
         out_seq_file = sample_out_path / f"{seq_name}.fasta"

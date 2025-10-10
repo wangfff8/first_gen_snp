@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 """
-This script serves as the main entry point for the SNP detection workflow.
-It coordinates the reading of data, alignment, and report generation.
+This script is the main entry point for the VSAT SNP detection workflow.
+
+It orchestrates the entire analysis pipeline, which is divided into five phases:
+1. Data Loading and Core Analysis: Loads reference and sample sequences,
+   performs alignment, and identifies mutations.
+2. Intermediate Report Generation: Creates text and Excel-compatible reports
+   for alignment statistics and SNP details.
+3. Sequence Storage: Organizes and saves processed sequences (full genome,
+   genes, and proteins) into a structured directory for subsequent alignment.
+4. MAFFT Alignment: Runs multiple sequence alignments for all sequence sets.
+5. Final HTML Report Generation: Compiles all results into a single,
+   comprehensive HTML report with embedded visualizations.
 """
+
 import argparse
-import os
 from pathlib import Path
 from . import data_handler, snp_analyzer, report_generator, alignment_runner
 
 
-# Define paths relative to the script location for default CLI behavior
+# Define default paths relative to the script's location.
 SCRIPT_DIR: Path = Path(__file__).resolve().parent
 DATA_DIR: Path = SCRIPT_DIR.parent.parent / "data"
 GENOME_DIR: Path = DATA_DIR / "genomes"
@@ -18,30 +28,32 @@ REF_GENOME_FILE: Path = DATA_DIR / "ref_genome.json"
 
 
 def _print_reference_genomes(genome_dict: dict[str, list[str]]) -> None:
-    """Prints the available reference genomes in a formatted way."""
+    """Print the available reference genomes in a formatted list."""
     print("Available reference genomes:")
     for virus_name, loci in genome_dict.items():
         print(f"{virus_name:<10}{', '.join(loci)}")
 
 
 def _phase_1_load_and_analyze(
-    ref_genome_fasta_file: Path,
+    ref_genome_seq_file: Path,
     ref_genome_gff_file: Path,
     assembled_sequences_dir: Path,
-):
-    """Loads all data and performs the core SNP analysis."""
+) -> tuple[str, str, dict[str, tuple[int, int]], dict[str, str], list[str]]:
+    """Load all necessary data and perform the core SNP analysis."""
     print("Step 1: Loading data and performing core analysis...")
-    print(f" - Loading reference genome from: {ref_genome_fasta_file}")
-    ref_name, ref_seq = data_handler.read_genome_sequence(ref_genome_fasta_file)
+    print(f" - Loading reference genome from: {ref_genome_seq_file}")
+    ref_name, ref_seq = data_handler.read_genome_sequence(seq_file=ref_genome_seq_file)
     print(f" - Loading reference genome annotation from: {ref_genome_gff_file}")
-    ref_peptides_dict = data_handler.parse_gff(ref_genome_gff_file)
+    ref_peptides_dict = data_handler.parse_gff(gff3_file=ref_genome_gff_file)
     print(f" - Loading assembled sequences from: {assembled_sequences_dir}")
-    genome_seq_dict = data_handler.read_assembled_sequences(assembled_sequences_dir)
+    genome_seq_dict = data_handler.read_assembled_sequences(directory=assembled_sequences_dir)
     print(f" - Found {len(genome_seq_dict)} samples to analyze.")
 
     print(" - Aligning sequences and identifying mutations...")
     aligned_genome_seq_dict, mutate_sites_list = (
-        snp_analyzer.align_sequences_and_find_mutations(ref_seq, genome_seq_dict)
+        snp_analyzer.align_sequences_and_find_mutations(
+            ref_seq=ref_seq, genome_seq_dict=genome_seq_dict
+        )
     )
     print("Step 1 complete.")
     return (
@@ -59,23 +71,36 @@ def _phase_2_generate_intermediate_reports(
     ref_peptides_dict: dict[str, tuple[int, int]],
     ref_seq: str,
     ref_name: str,
+    output_dir: Path,
 ):
-    """Generates intermediate text and XLS reports."""
+    """Generate intermediate analysis reports in text and XLS formats."""
     print("\nStep 2: Generating intermediate text and XLS reports...")
     report_generator.align_stat(
-        ref_peptides_dict, aligned_genome_seq_dict, ref_name, ref_seq
+        ref_peptides_dict=ref_peptides_dict,
+        aligned_genome_seq_dict=aligned_genome_seq_dict,
+        ref_name=ref_name,
+        ref_seq=ref_seq,
+        output_dir=output_dir,
     )
-    print(" - alignment_statistics.xls created.")
+    print(f" - alignment_statistics.xls created in {output_dir}.")
 
     report_generator.write_snp_results_to_txt(
-        aligned_genome_seq_dict, mutate_sites_list, ref_peptides_dict, ref_seq
+        aligned_genome_seq_dict=aligned_genome_seq_dict,
+        mutate_sites_list=mutate_sites_list,
+        ref_peptides_dict=ref_peptides_dict,
+        ref_seq=ref_seq,
+        output_dir=output_dir,
     )
-    print(" - snp_result.txt created.")
+    print(f" - snp_result.txt created in {output_dir}.")
 
     report_generator.write_snp_results_to_xls(
-        aligned_genome_seq_dict, mutate_sites_list, ref_peptides_dict, ref_seq
+        aligned_genome_seq_dict=aligned_genome_seq_dict,
+        mutate_sites_list=mutate_sites_list,
+        ref_peptides_dict=ref_peptides_dict,
+        ref_seq=ref_seq,
+        output_dir=output_dir,
     )
-    print(" - snp_result.xls created.")
+    print(f" - snp_result.xls created in {output_dir}.")
     print("Step 2 complete.")
 
 
@@ -83,91 +108,88 @@ def _phase_3_store_sequences(
     assembled_sequences_dir: Path,
     aligned_genome_seq_dict: dict[str, str],
     ref_peptides_dict: dict[str, tuple[int, int]],
-    ref_genome_fasta_file: Path,
+    ref_genome_seq_file: Path,
     ref_name: str,
     ref_seq: str,
     out_seq_dir: Path,
 ):
-    """Stores processed sequences for the alignment phase."""
+    """Store processed sequences in a structured directory for the alignment phase."""
     print("\nStep 3: Storing processed sequences...")
-    # Add the reference sequence to the dictionary for inclusion in the output files
+    # Include the reference sequence in the dictionary to ensure it's part of the output.
     aligned_genome_seq_dict_with_ref = aligned_genome_seq_dict.copy()
     aligned_genome_seq_dict_with_ref[ref_name] = ref_seq
     report_generator.store_sequence(
-        assembled_sequences_dir,
-        aligned_genome_seq_dict_with_ref,
-        ref_peptides_dict,
-        ref_genome_fasta_file,
-        out_seq_dir,
+        assembly_dir=assembled_sequences_dir,
+        aligned_genome_seq_dict=aligned_genome_seq_dict_with_ref,
+        ref_peptides_dict=ref_peptides_dict,
+        ref_genome_file=ref_genome_seq_file,
+        out_seq_dir=out_seq_dir,
     )
     print(f" - Sequences stored in {out_seq_dir} directory.")
     print("Step 3 complete.")
 
 
-def _phase_4_run_alignments(out_seq_dir: Path):
-    """Runs MAFFT alignments for genome, all genes, and all proteins."""
+def _phase_4_run_alignments(out_seq_dir: Path, ref_name: str):
+    """Run MAFFT alignments for the full genome, all genes, and all proteins."""
     print("\nStep 4: Running MAFFT alignments for all sequences...")
 
-    # Genome alignment
+    # Run genome alignment
     genome_dir = out_seq_dir / "genome"
     if genome_dir.is_dir():
         alignment_runner.run_mafft_alignment(
             seq_dir=genome_dir,
-            out_dir=genome_dir,  # Save alignment in the same directory
+            out_dir=genome_dir,
             alignment_type="genome",
+            ref_name=ref_name,
         )
 
-    # Gene alignments
+    # Run gene alignments for each gene subdirectory
     gene_seq_parent_dir = out_seq_dir / "gene"
     if gene_seq_parent_dir.is_dir():
         for subdir in sorted(gene_seq_parent_dir.iterdir()):
             if subdir.is_dir():
                 alignment_runner.run_mafft_alignment(
                     seq_dir=subdir,
-                    out_dir=subdir,  # Save alignment in the same directory
+                    out_dir=subdir,
                     alignment_type=f"gene_{subdir.name}",
+                    ref_name=ref_name,
                 )
 
-    # Protein alignments
+    # Run protein alignments for each protein subdirectory
     protein_seq_parent_dir = out_seq_dir / "protein"
     if protein_seq_parent_dir.is_dir():
         for subdir in sorted(protein_seq_parent_dir.iterdir()):
             if subdir.is_dir():
                 alignment_runner.run_mafft_alignment(
                     seq_dir=subdir,
-                    out_dir=subdir,  # Save alignment in the same directory
+                    out_dir=subdir,
                     alignment_type=f"protein_{subdir.name}",
+                    ref_name=ref_name,
                 )
     print("Step 4 complete.")
 
 
-def _phase_5_generate_final_report(out_seq_dir: Path):
-    """Selects featured alignments and generates the final HTML report."""
+def _phase_5_generate_final_report(out_seq_dir: Path, output_dir: Path):
+    """Select featured alignments and generate the final, comprehensive HTML report."""
     print("\nStep 5: Generating final HTML report...")
-    # Select the first gene and protein alignment to feature in the report
+    # Select the first gene and protein alignment (sorted alphabetically) to feature.
     target_gene_dir = next(
         (d for d in (out_seq_dir / "gene").iterdir() if d.name.startswith("1_")),
         None,
     )
     target_protein_dir = next(
-        (
-            d
-            for d in (out_seq_dir / "protein").iterdir()
-            if d.name.startswith("1_")
-        ),
+        (d for d in (out_seq_dir / "protein").iterdir() if d.name.startswith("1_")),
         None,
     )
 
-    # Construct paths to the alignment files in their new locations
+    # Construct paths to the colorized alignment files to be embedded.
     gene_mafft_file = (
         target_gene_dir / f"gene_{target_gene_dir.name}_aligned_colorized.html"
-        if target_gene_dir
-        else None
+        if target_gene_dir else None
     )
     protein_mafft_file = (
         target_protein_dir / f"protein_{target_protein_dir.name}_aligned_colorized.html"
-        if target_protein_dir
-        else None
+        if target_protein_dir else None
     )
 
     report_generator.generate_html_report(
@@ -175,28 +197,29 @@ def _phase_5_generate_final_report(out_seq_dir: Path):
         protein_mafft_file=protein_mafft_file,
         gene_dir_name=target_gene_dir.name if target_gene_dir else None,
         protein_dir_name=target_protein_dir.name if target_protein_dir else None,
+        output_dir=output_dir,
     )
-    print(" - viral_snp_report.html created.")
+    print(f" - viral_snp_report.html created in {output_dir}.")
     print("Step 5 complete.")
 
 
 def run_snp_analysis(
-    ref_genome_fasta_file: Path,
+    ref_genome_seq_file: Path,
     ref_genome_gff_file: Path,
     assembled_sequences_dir: Path,
     output_dir: Path,
 ) -> None:
     """
-    Orchestrates the entire SNP analysis workflow by executing five distinct phases.
+    Orchestrate the entire SNP analysis workflow through its five phases.
 
     Args:
-        ref_genome_fasta_file: Path to the reference genome FASTA file.
+        ref_genome_seq_file: Path to the reference genome FASTA file.
         ref_genome_gff_file: Path to the reference genome GFF3 annotation file.
         assembled_sequences_dir: Directory containing assembled sample sequences.
-        output_dir: The main directory to store all results.
+        output_dir: The main directory where all results will be stored.
     """
     print("Starting SNP analysis workflow...")
-    out_seq_dir = Path("processed_sequences")
+    out_seq_dir = output_dir / "processed_sequences"
 
     # Phase 1: Data Loading and Core Analysis
     (
@@ -206,37 +229,44 @@ def run_snp_analysis(
         aligned_genome_seq_dict,
         mutate_sites_list,
     ) = _phase_1_load_and_analyze(
-        ref_genome_fasta_file, ref_genome_gff_file, assembled_sequences_dir
+        ref_genome_seq_file=ref_genome_seq_file,
+        ref_genome_gff_file=ref_genome_gff_file,
+        assembled_sequences_dir=assembled_sequences_dir
     )
 
     # Phase 2: Generate Intermediate Reports
     _phase_2_generate_intermediate_reports(
-        aligned_genome_seq_dict, mutate_sites_list, ref_peptides_dict, ref_seq, ref_name
+        aligned_genome_seq_dict=aligned_genome_seq_dict,
+        mutate_sites_list=mutate_sites_list,
+        ref_peptides_dict=ref_peptides_dict,
+        ref_seq=ref_seq,
+        ref_name=ref_name,
+        output_dir=output_dir,
     )
 
     # Phase 3: Store Processed Sequences for Alignment
     _phase_3_store_sequences(
-        assembled_sequences_dir,
-        aligned_genome_seq_dict,
-        ref_peptides_dict,
-        ref_genome_fasta_file,
-        ref_name,
-        ref_seq,
+        assembled_sequences_dir=assembled_sequences_dir,
+        aligned_genome_seq_dict=aligned_genome_seq_dict,
+        ref_peptides_dict=ref_peptides_dict,
+        ref_genome_seq_file=ref_genome_seq_file,
+        ref_name=ref_name,
+        ref_seq=ref_seq,
         out_seq_dir=out_seq_dir,
     )
 
     # Phase 4: Run MAFFT Alignments
-    _phase_4_run_alignments(out_seq_dir=out_seq_dir)
+    _phase_4_run_alignments(out_seq_dir=out_seq_dir, ref_name=ref_name)
 
     # Phase 5: Generate Final HTML Report
-    _phase_5_generate_final_report(out_seq_dir=out_seq_dir)
+    _phase_5_generate_final_report(out_seq_dir=out_seq_dir, output_dir=output_dir)
 
     print("\nAnalysis complete.")
 
 
 def main():
     """
-    Parses command-line arguments and executes the SNP detection workflow.
+    Parse command-line arguments and execute the SNP detection workflow.
     """
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -279,14 +309,11 @@ def main():
 
     locus = args.locus.strip()
     assembly_dir = Path(args.assembly_dir).resolve()
-    output_dir = Path(args.output_dir)
+    output_dir = Path(args.output_dir).resolve()
 
-    # Create the output directory
+    # Create the output directory if it doesn't exist.
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Change the current working directory to the output directory
-    os.chdir(output_dir)
-    print(f"Changed working directory to: {output_dir}")
 
     ref_genome_file = GENOME_DIR / f"{locus}.fasta"
     ref_genome_ann_file = GENOME_DIR / f"{locus}.gff3"
@@ -297,7 +324,7 @@ def main():
         parser.error(f"Annotation file not found: {ref_genome_ann_file}")
 
     run_snp_analysis(
-        ref_genome_fasta_file=ref_genome_file,
+        ref_genome_seq_file=ref_genome_file,
         ref_genome_gff_file=ref_genome_ann_file,
         assembled_sequences_dir=assembly_dir,
         output_dir=output_dir,

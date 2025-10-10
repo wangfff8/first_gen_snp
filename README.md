@@ -1,33 +1,45 @@
 # VSAT: Virus SNP Analysis Tool
 
-**VSAT (Virus SNP Analysis Tool)** is a simple and efficient Python package for studying Single Nucleotide Polymorphisms (SNPs) in viral genomes using first-generation sequencing data. It provides an end-to-end workflow from raw data to a final, interactive HTML report.
+**VSAT (Virus SNP Analysis Tool)** is a simple and efficient Python package for
+studying Single Nucleotide Polymorphisms (SNPs) in viral genomes using
+first-generation sequencing data. It provides an end-to-end workflow from raw
+data to a final, interactive HTML report.
 
 ## Features
 
 - Automates the initial assembly of raw sequencing data using **CAP3**.
 - Identifies SNPs by comparing the assembled genome to a reference sequence.
-- Performs multiple sequence alignment for genomes, genes, and proteins using **MAFFT**.
-- Generates a comprehensive, interactive **HTML report** visualizing SNP results and sequence alignments.
-- Provides detailed information about mutations, including their impact on amino acid coding.
-- Designed as an importable library, allowing for easy integration into custom workflows.
+- Performs multiple sequence alignment for genomes, genes, and proteins using
+  **MAFFT**.
+- Generates a comprehensive, interactive **HTML report** visualizing SNP results
+  and sequence alignments.
+- Provides detailed information about mutations, including their impact on amino
+  acid coding.
+- Designed as an importable library, allowing for easy integration into custom
+  workflows.
 
 ## Requirements
 
 - Python 3.12+
 - [uv](https://github.com/astral-sh/uv) (recommended for environment management)
-- **[CAP3](https://faculty.sites.iastate.edu/xqhuang/cap3-assembly-program)**: Must be installed and available in your system's `PATH`.
-- **[SeqKit](https://github.com/shenwei356/seqkit/releases)**: Must be installed and available in your system's `PATH`.
-- **[MAFFT](https://mafft.cbrc.jp/alignment/software/)**: Must be installed and available in your system's `PATH`.
+- **[CAP3](https://faculty.sites.iastate.edu/xqhuang/cap3-assembly-program)**:
+  Must be installed and available in your system's `PATH`.
+- **[SeqKit](https://github.com/shenwei356/seqkit/releases)**: Must be installed
+  and available in your system's `PATH`.
+- **[MAFFT](https://mafft.cbrc.jp/alignment/software/)**: Must be installed and
+  available in your system's `PATH`.
 
 ## Installation
 
-1.  **Clone the repository:**
+1. **Clone the repository:**
+
     ```bash
     git clone <repository_url>
     cd first_gen_snp
     ```
 
-2.  **Create and activate a virtual environment:**
+2. **Create and activate a virtual environment:**
+
     ```bash
     uv venv
     # On Windows (Git Bash)
@@ -36,8 +48,9 @@
     source .venv/bin/activate
     ```
 
-3.  **Install the package in editable mode:**
-    This makes the `vsat` package available for import in your Python environment.
+3. **Install the package in editable mode:** This makes the `vsat` package
+    available for import in your Python environment.
+
     ```bash
     uv pip install -e .
     ```
@@ -55,21 +68,29 @@ The project uses a modern `src` layout:
 
 ## Usage
 
-The VSAT package can be used either directly from the command line or as a library in your own Python scripts.
+The VSAT package can be used either directly from the command line or as a
+library in your own Python scripts.
 
 ### Command-Line Usage
 
 #### Step 1: Data Preparation
 
-1.  **Reference Genomes**:
-    - Place your reference virus genomes (`.fasta` files) and their corresponding annotation files (`.gff3` files) into the `data/genomes/` directory.
-    - Update the `data/ref_genome.json` file to map a short name (locus) to your new genome files.
+1. **Reference Genomes**:
+    - Place your reference virus genomes (`.fasta` files) and their
+      corresponding annotation files (`.gff3` files) into the `data/genomes/`
+      directory.
+    - Update the `data/ref_genome.json` file to map a short name (locus) to your
+      new genome files.
 
-2.  **Raw Data**:
-    - Organize your raw sequencing files (`.seq`, `.ab1`, etc.) in a dedicated directory (e.g., `/path/to/raw_data`).
+2. **Raw Data**:
+    - Organize your raw sequencing files (`.seq`, `.ab1`, etc.) in a dedicated
+      directory (e.g., `/path/to/raw_data`).
 
-3.  **ID Map File**:
-    - Create an ID map file (e.g., `id_map.xls`). This is a two-column, tab-separated file that maps a unique identifier from your raw data filenames to a desired sample name.
+3. **ID Map File**:
+    - Create an ID map file (e.g., `id_map.xls`). This is a two-column,
+      tab-separated file that maps a unique identifier from your raw data
+      filenames to a desired sample name.
+
     ```plaintext
     # Column 1: Identifier in filename   Column 2: Desired sample name
     32024082401051  Me2024074S05_01-3
@@ -77,9 +98,11 @@ The VSAT package can be used either directly from the command line or as a libra
 
 #### Step 2: Sequence Assembly
 
-The genome assembly workflow is run via the `vsat.genome_assembler` module. A template script is provided in `scripts/genome_assembly.sh`.
+The genome assembly workflow is run via the `vsat.genome_assembler` module. A
+template script is provided in `scripts/genome_assembly.sh`.
 
 Example command:
+
 ```bash
 python -m vsat.genome_assembler \
     --id_map /path/to/id_map.xls \
@@ -87,18 +110,25 @@ python -m vsat.genome_assembler \
     --split_data /path/to/split_data \
     --assembly_dir /path/to/assembly_dir
 ```
-After this step, you may need to manually inspect and finish the assembled contigs (found in `assembly_dir`) using tools like DNAMAN to produce a high-quality viral genome sequence (`.seq` file).
+
+After this step, you may need to manually inspect and finish the assembled
+contigs (found in `assembly_dir`) using tools like DNAMAN to produce a
+high-quality viral genome sequence (`.seq` file).
 
 #### Step 3: SNP Detection and Reporting
 
-Once you have a finished assembly (saved as a `.seq` file in a directory), use the `vsat.variant_caller` module to detect SNPs and generate a full analysis report. A template script is provided in `scripts/snp_detection.sh`.
+Once you have a finished assembly (saved as a `.seq` file in a directory), use
+the `vsat.variant_caller` module to detect SNPs and generate a full analysis
+report. A template script is provided in `scripts/snp_detection.sh`.
 
 First, list available reference genomes:
+
 ```bash
 python -m vsat.variant_caller --list
 ```
 
 Then, run the SNP detection workflow:
+
 ```bash
 # -g: The locus name from the reference genome list
 # -s: The path to the directory containing your final assembled .seq files
@@ -110,16 +140,20 @@ python -m vsat.variant_caller \
 ```
 
 The output directory will contain:
+
 - `viral_snp_report.html`: The main interactive report.
 - `snp_result.txt` & `snp_result.xls`: Detailed SNP data.
 - `alignment_statistics.xls`: Sequence identity metrics.
-- `processed_sequences/`: A structured directory with all intermediate sequences and MAFFT alignment results for genomes, genes, and proteins.
+- `processed_sequences/`: A structured directory with all intermediate sequences
+  and MAFFT alignment results for genomes, genes, and proteins.
 
 ### Library Usage
 
-You can also import and use the workflow functions directly in your Python scripts.
+You can also import and use the workflow functions directly in your Python
+scripts.
 
 #### Example: Genome Assembly
+
 ```python
 from vsat import genome_assembler
 
@@ -132,6 +166,7 @@ genome_assembler.run_genome_assembly(
 ```
 
 #### Example: SNP Analysis
+
 ```python
 from pathlib import Path
 from vsat import variant_caller

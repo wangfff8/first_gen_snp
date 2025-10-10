@@ -1,6 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
+"""
+This module orchestrates the genome assembly workflow for raw sequencing data.
+
+It automates the process of organizing raw data, running the CAP3 assembler,
+and preparing the resulting contigs for further analysis. This script can be
+executed directly from the command line.
+
+The workflow relies on two external command-line tools that must be installed
+and available in the system's PATH:
+- cap3: For sequence assembly.
+- seqkit: For splitting contig files.
+"""
+
 import argparse
 import subprocess
 from pathlib import Path
@@ -9,15 +22,17 @@ from . import data_handler
 
 def _run_cap3_for_samples(assembly_dir: str | Path, sample_list: list[str]) -> None:
     """
-    Runs the core assembly commands (CAP3 and SeqKit) for each sample.
+    Run the CAP3 assembler and SeqKit splitter for each sample.
 
-    This function iterates through a list of samples, runs CAP3 to assemble
-    contigs, and then uses SeqKit to split the resulting contigs into
-    separate files. It requires CAP3 and SeqKit to be in the system's PATH.
+    This function iterates through a list of sample names, creates a dedicated
+    directory for each, and then executes the core assembly commands: `cap3`
+    to assemble contigs and `seqkit split` to separate them into individual
+    files.
 
     Args:
-        assembly_dir: The directory to store assembled contigs for each sample.
-        sample_list: A list of sample names to process.
+        assembly_dir: The base directory where sample-specific assembly folders
+                      will be created and results will be stored.
+        sample_list: A list of sample names to be processed.
     """
     print("Starting assembly process...")
     assembly_dir = Path(assembly_dir)
@@ -44,19 +59,19 @@ def run_genome_assembly(
     assembly_dir: str | Path,
 ) -> None:
     """
-    Orchestrates the entire genome assembly workflow.
+    Orchestrate the end-to-end genome assembly workflow.
 
-    This workflow consists of four main steps:
-    1. Loading the sample ID map.
-    2. Splitting the raw sequencing data into sample-specific directories.
-    3. Combining individual sequence files into a single FASTA file per sample.
-    4. Running the CAP3 assembler and splitting the resulting contigs.
+    This function manages the entire assembly pipeline, which includes:
+    1. Reading the sample ID map to associate file IDs with sample names.
+    2. Splitting raw sequencing data into sample-specific subdirectories.
+    3. Consolidating individual sequence files into a single FASTA file per sample.
+    4. Executing the CAP3 assembly process for each sample.
 
     Args:
-        raw_data_dir: Directory containing the raw sequencing files (.seq, .ab1).
-        id_map_file: Path to the ID map file mapping file IDs to sample names.
-        split_data_dir: Directory to store the intermediate split data.
-        assembly_dir: Directory to store the final assembled contigs.
+        id_map_file: Path to the ID map file (Excel format).
+        raw_data_dir: Directory containing the raw sequencing files (e.g., .seq, .ab1).
+        split_data_dir: Directory to store intermediate, sample-specific data.
+        assembly_dir: Directory where the final assembly outputs will be stored.
     """
     print("Loading ID map...")
     id_map_dict = data_handler.read_id_map(id_map_file)
@@ -74,11 +89,11 @@ def run_genome_assembly(
 
 def main():
     """
-    Parses command-line arguments and executes the genome assembly workflow.
+    Parse command-line arguments and execute the genome assembly workflow.
 
-    This function serves as the command-line entry point for the script.
-    It parses arguments for input/output directories and the ID map,
-    then calls the main assembly workflow function.
+    This function serves as the main entry point when the script is run from
+    the command line. It defines and parses arguments for the required input
+    and output directories, then initiates the assembly process.
     """
     parser = argparse.ArgumentParser(
         description="Assemble raw sequencing data using CAP3."
@@ -101,7 +116,7 @@ def main():
         raw_data_dir=args.raw_data,
         split_data_dir=args.split_data,
         assembly_dir=args.assembly_dir,
-        
+
     )
 
 

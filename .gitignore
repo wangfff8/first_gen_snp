@@ -87,24 +87,27 @@ venv.bak/
 .idea/
 .vscode/
 
-# mypy
-.mypy_cache/
-
-# 
-CLAUDE.md
-
 #Ignore vscode AI rules
 .github/instructions/
 
-# Example
+# mypy
+.mypy_cache/
+
+# uv
+uv.lock
+
+# Markdown
+.markdownlint.json
+.prettierrc
+.prettierignore
+
+# Documentation
+CLAUDE.md
+
 # Ignore all contents within the example directory
 examples/mazhen_20240827/*
-
 # But do not ignore these specific subdirectories and files
 !examples/mazhen_20240827/raw_data/
 !examples/mazhen_20240827/id_map.xls
 !examples/mazhen_20240827/assembly_dir/
 examples/mazhen_20240827/assembly_dir/Me2024074S05_01-3
-
-# uv
-uv.lock
