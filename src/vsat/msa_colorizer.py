@@ -111,18 +111,16 @@ def colorize_multiple_alignment_html(seqs_dict: dict[str, str], line_length: int
 
     # Iterate through each column to determine conservation and apply color
     for i in range(alignment_length):
+        first_seq_char= sequences[0][i]
         column_chars = [seq[i] for seq in sequences]
 
         is_conserved = True
-        first_non_gap_char = None
         has_non_gap = False
 
-        for char in column_chars:
+        for char in column_chars[1:]:
             if char != '-':
                 has_non_gap = True
-                if first_non_gap_char is None:
-                    first_non_gap_char = char
-                elif char != first_non_gap_char:
+                if char != first_seq_char:
                     is_conserved = False
                     break
 
