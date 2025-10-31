@@ -89,7 +89,7 @@ venv.bak/
 
 #Ignore vscode AI rules
 .codacy
-.github/instructions
+.github/instructions/
 
 # mypy
 .mypy_cache/
@@ -111,3 +111,5 @@ examples/mazhen_20240827/*
 !examples/mazhen_20240827/id_map.xls
 !examples/mazhen_20240827/assembly_dir/
 examples/mazhen_20240827/assembly_dir/Me2024074S05_01-3
+
+viral_snp_results/

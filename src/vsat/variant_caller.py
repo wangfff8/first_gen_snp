@@ -174,11 +174,11 @@ def _phase_5_generate_final_report(out_seq_dir: Path, output_dir: Path):
     print("\nStep 5: Generating final HTML report...")
     # Select the first gene and protein alignment (sorted alphabetically) to feature.
     target_gene_dir = next(
-        (d for d in (out_seq_dir / "gene").iterdir() if d.name.startswith("1_")),
+        (d for d in (out_seq_dir / "gene").iterdir() if d.name.startswith("1.")),
         None,
     )
     target_protein_dir = next(
-        (d for d in (out_seq_dir / "protein").iterdir() if d.name.startswith("1_")),
+        (d for d in (out_seq_dir / "protein").iterdir() if d.name.startswith("1.")),
         None,
     )
 

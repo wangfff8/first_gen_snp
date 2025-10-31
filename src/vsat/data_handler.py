@@ -58,7 +58,8 @@ def read_genome_sequence(seq_file: str | Path) -> tuple[str, str]:
     seq_parts = []
     for line in lines:
         if line.startswith(">"):
-            seq_id = line.strip().split()[0][1:]
+            #seq_id = line.strip().split()[0][1:]
+            seq_id = line.strip()[1:]
         else:
             seq_parts.append(line.strip().upper())
 

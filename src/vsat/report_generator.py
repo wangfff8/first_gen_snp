@@ -238,8 +238,8 @@ def store_sequence(
     # Extract and save sequences for each product
     for i, (product_name, coding_range) in enumerate(ref_peptides_dict.items(), 1):
         product_name_safe = product_name.replace("/", "_")
-        nuc_path = nuc_dir / f"{i}_{product_name_safe}"
-        pep_path = pep_dir / f"{i}_{product_name_safe}"
+        nuc_path = nuc_dir / f"{i}.{product_name_safe}"
+        pep_path = pep_dir / f"{i}.{product_name_safe}"
         data_handler.mkdir(dir_path=nuc_path)
         data_handler.mkdir(dir_path=pep_path)
 
