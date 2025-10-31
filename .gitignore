@@ -95,7 +95,6 @@ venv.bak/
 .mypy_cache/
 
 # uv
-uv.lock
 
 # Markdown
 .markdownlint.json
