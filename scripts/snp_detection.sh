@@ -20,11 +20,12 @@ echo ""
 # 1. Uncomment the `python -m vsat.variant_caller ...` line below.
 # 2. Replace `locus_name` with a valid locus name from the list above.
 # 3. Replace `/path/to/final_assembly_dir` with the path to your assembled sequences.
-# 4. Replace `/path/to/output_dir` with the path where you want to save the results.
+# 4. Replace `/path/to/output_results_dir` with the path where you want to save the results.
+# 5. Use `-t` or `--threads` to specify the number of threads for parallel alignments.
 #
 echo "INFO: To run SNP detection, please edit this script and uncomment the following line."
 echo "INFO: Replace the placeholder values with your specific data."
 
-# python -m vsat.variant_caller -g locus_name -s /path/to/final_assembly_dir [-o /path/to/output_dir]
+echo "# python -m vsat.variant_caller -g <locus_name> -s /path/to/final_assembly_dir -o /path/to/output_results_dir -t 4"
 
 echo "Script execution finished."

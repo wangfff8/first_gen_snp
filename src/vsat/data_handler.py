@@ -9,8 +9,13 @@ data into a structured format for analysis.
 import re
 import json
 import shutil
+import sys
 from itertools import chain
 from pathlib import Path
+from . import logger as vsat_logger
+
+# Set up logging with colored output.
+logger = vsat_logger.setup_logger(__name__)
 
 
 def mkdir(dir_path: str | Path) -> None:
@@ -28,23 +33,22 @@ def load_reference_genomes(genome_file: str | Path) -> dict[str, list[str]]:
     Returns:
         A dictionary parsed from the JSON file.
     """
-    with open(genome_file, 'r', encoding='utf-8') as f:
+    with open(genome_file, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def read_genome_sequence(seq_file: str | Path) -> tuple[str, str]:
+def read_genome_sequence(
+    seq_file: str | Path, overwrite: bool = False
+) -> tuple[str, str]:
     """
-    Read a single FASTA-like file and standardize its format in place.
+    Read a single FASTA-like file and standardize its format.
 
     This function reads a sequence file, extracts the first word of the header
     as the sequence ID, and consolidates the sequence onto a single line.
 
-    Note:
-        This function has a significant side effect: it overwrites the original
-        file (`seq_file`) with the standardized FASTA content.
-
     Args:
         seq_file: The path to the sequence file.
+        overwrite: If True, overwrites the original file with standardized content.
 
     Returns:
         A tuple containing the sequence ID and the full sequence in uppercase.
@@ -58,7 +62,6 @@ def read_genome_sequence(seq_file: str | Path) -> tuple[str, str]:
     seq_parts = []
     for line in lines:
         if line.startswith(">"):
-            #seq_id = line.strip().split()[0][1:]
             seq_id = line.strip()[1:]
         else:
             seq_parts.append(line.strip().upper())
@@ -69,9 +72,10 @@ def read_genome_sequence(seq_file: str | Path) -> tuple[str, str]:
 
     sequence = "".join(seq_parts)
 
-    # Overwrite the original file with the standardized format.
-    with open(seq_file_path, "w", encoding="utf-8") as f:
-        f.write(f">{seq_id}\n{sequence}\n")
+    if overwrite:
+        # Overwrite the original file with the standardized format.
+        with open(seq_file_path, "w", encoding="utf-8") as f:
+            f.write(f">{seq_id}\n{sequence}\n")
 
     return seq_id, sequence
 
@@ -116,7 +120,7 @@ def parse_gff(gff3_file: str | Path) -> dict[str, tuple[int, int]]:
             # We are only interested in 'CDS' features.
             if fields[2] == "CDS":
                 # Extract the product name from the attributes field.
-                if match := re.search('product=(.*?)(?:;|$)', fields[8]):
+                if match := re.search("product=(.*?)(?:;|$)", fields[8]):
                     product_name = match.group(1)
                     if product_name not in coding_dict:
                         coding_dict[product_name] = (int(fields[3]), int(fields[4]))
@@ -137,7 +141,7 @@ def read_id_map(id_map_file: str | Path) -> dict[str, str]:
     """
     id_map_dict = {}
     if Path(id_map_file).is_file():
-        with open(id_map_file, 'r', encoding='utf-8') as f:
+        with open(id_map_file, "r", encoding="utf-8") as f:
             for line in f:
                 fields = line.strip().split()
                 if len(fields) >= 2:
@@ -145,7 +149,9 @@ def read_id_map(id_map_file: str | Path) -> dict[str, str]:
     return id_map_dict
 
 
-def split_data(id_map: dict[str, str], raw_data_path: str | Path, out_path: str | Path) -> None:
+def split_data(
+    id_map: dict[str, str], raw_data_path: str | Path, out_path: str | Path
+) -> None:
     """
     Organize raw sequencing data into sample-specific directories based on an ID map.
 
@@ -165,38 +171,37 @@ def split_data(id_map: dict[str, str], raw_data_path: str | Path, out_path: str 
     raw_data_path = Path(raw_data_path)
     out_path = Path(out_path)
     all_files = list(raw_data_path.rglob("*"))
-    seq_list = [f for f in all_files if f.suffix == '.seq']
-    ab1_list = [f for f in all_files if f.suffix == '.ab1']
-    pdf_list = [f for f in all_files if f.suffix == '.pdf']
+    seq_list = [f for f in all_files if f.suffix == ".seq"]
+    ab1_list = [f for f in all_files if f.suffix == ".ab1"]
+    pdf_list = [f for f in all_files if f.suffix == ".pdf"]
 
     if not seq_list or not ab1_list or len(seq_list) != len(ab1_list):
-        print(
-            'Error: Input directory must contain matching numbers of .seq and '
-            '.ab1 files.'
+        logger.error(
+            "Input directory must contain matching numbers of .seq and .ab1 files."
         )
-        exit(1)
+        sys.exit(1)
 
     for file_id, sample_name in id_map.items():
         sample_out_path = out_path / sample_name
         # Create subdirectories for each file type within the sample folder.
-        seq_out_path = sample_out_path / 'seq'
-        ab1_out_path = sample_out_path / 'ab1'
+        seq_out_path = sample_out_path / "seq"
+        ab1_out_path = sample_out_path / "ab1"
         mkdir(dir_path=seq_out_path)
         mkdir(dir_path=ab1_out_path)
 
         pdf_out_path = None
         if pdf_list:
-            pdf_out_path = sample_out_path / 'pdf'
+            pdf_out_path = sample_out_path / "pdf"
             mkdir(dir_path=pdf_out_path)
 
         # Copy files that match the current file_id into the corresponding folders.
         for file_ in chain(seq_list, ab1_list, pdf_list):
             if re.search(file_id, file_.name):
-                if file_.suffix == '.seq':
+                if file_.suffix == ".seq":
                     shutil.copy(file_, seq_out_path)
-                elif file_.suffix == '.ab1':
+                elif file_.suffix == ".ab1":
                     shutil.copy(file_, ab1_out_path)
-                elif file_.suffix == '.pdf' and pdf_out_path:
+                elif file_.suffix == ".pdf" and pdf_out_path:
                     shutil.copy(file_, pdf_out_path)
 
 
@@ -219,7 +224,7 @@ def combine_seq2fasta(split_data_path: str | Path, assembly_dir: str | Path) -> 
         if not sample_path.is_dir():
             continue
         sample_name = sample_path.name
-        sample_seq_dir = sample_path / 'seq'
+        sample_seq_dir = sample_path / "seq"
         if not sample_seq_dir.is_dir():
             continue
 

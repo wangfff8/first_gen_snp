@@ -13,7 +13,10 @@ import sys
 import subprocess
 from pathlib import Path
 
-from . import data_handler
+from . import data_handler, logger as vsat_logger
+
+# Set up logging with colored output.
+logger = vsat_logger.setup_logger(__name__)
 
 
 def run_mafft_alignment(
@@ -51,9 +54,9 @@ def run_mafft_alignment(
 
     # Gather all supported sequence files from the input directory.
     all_seq_files = (
-        list(seq_dir.glob("*.fa")) +
-        list(seq_dir.glob("*.fasta")) +
-        list(seq_dir.glob("*.seq"))
+        list(seq_dir.glob("*.fa"))
+        + list(seq_dir.glob("*.fasta"))
+        + list(seq_dir.glob("*.seq"))
     )
 
     # Separate the reference sequence from the others to control its order.
@@ -65,7 +68,7 @@ def run_mafft_alignment(
     # print(f"seq_files: {seq_files}")
 
     if not seq_files:
-        print(f"No sequence files found in {seq_dir} for alignment.")
+        logger.warning(f"No sequence files found in {seq_dir} for alignment.")
         return None
 
     # Merge all sequences into a single FASTA file for MAFFT input.
@@ -78,7 +81,9 @@ def run_mafft_alignment(
     mafft_output_file = out_dir / f"{alignment_type}_aligned.fasta"
     mafft_cmd = ["mafft", "--auto", str(merged_input_file)]
 
-    print(f"Running MAFFT for {alignment_type}... Command: {' '.join(mafft_cmd)}")
+    logger.info(
+        f"Running MAFFT for {alignment_type}...\n - Command: {' '.join(mafft_cmd)}"
+    )
     try:
         with mafft_output_file.open("w", encoding="utf-8") as f_out:
             result = subprocess.run(
@@ -90,29 +95,37 @@ def run_mafft_alignment(
             )
             f_out.write(result.stdout)
     except FileNotFoundError:
-        print("Error: 'mafft' command not found. Please ensure it is installed and in your PATH.")
+        logger.error(
+            "'mafft' command not found. Please ensure it is installed and in your PATH."
+        )
         return None
     except subprocess.CalledProcessError as e:
-        print(f"Error during MAFFT execution for {alignment_type}:")
-        print(e.stderr)
+        logger.error(f"Error during MAFFT execution for {alignment_type}:")
+        logger.error(e.stderr)
         return None
 
     # Colorize the MAFFT output using the msa_colorizer.py script.
     colorized_output_html = out_dir / f"{alignment_type}_aligned_colorized.html"
     script_path = Path(__file__).resolve().parent / "msa_colorizer.py"
     if not script_path.exists():
-        print(f"Error: Colorizing script not found at {script_path}")
+        logger.error(f"Error: Colorizing script not found at {script_path}")
         return None
 
     colorize_cmd = [
         sys.executable,
-        str(script_path),
+        "-m",
+        "vsat.msa_colorizer",
         str(mafft_output_file),
         "-o",
         str(colorized_output_html),
     ]
 
-    print(f"Colorizing MAFFT output for {alignment_type}...")
+    logger.info(f"Colorizing MAFFT output for {alignment_type}...")
+    # Ensure the environment inherits PYTHONPATH if it was set
+    import os
+
+    env = os.environ.copy()
+
     try:
         subprocess.run(
             colorize_cmd,
@@ -120,11 +133,14 @@ def run_mafft_alignment(
             capture_output=True,
             text=True,
             encoding="utf-8",
+            env=env,
         )
     except subprocess.CalledProcessError as e:
-        print(f"Error during colorizing script execution for {alignment_type}:")
-        print(e.stderr)
+        logger.error(f"Error during colorizing script execution for {alignment_type}:")
+        logger.error(e.stderr)
         return None
 
-    print(f"Successfully generated colorized alignment: {colorized_output_html}")
+    logger.info(
+        f"Successfully generated colorized alignment:\n - {colorized_output_html}"
+    )
     return colorized_output_html

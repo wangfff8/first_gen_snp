@@ -9,7 +9,7 @@ set -e
 
 # Replace the placeholder paths below with the actual paths to your data.
 python -m vsat.genome_assembler \
-    --id_map /path/to/id_map.xls \
-    --raw_data /path/to/raw_data \
-    --split_data /path/to/split_data \
-    --assembly_dir /path/to/assembly_dir 
+    -i /path/to/id_map.xls \
+    -r /path/to/raw_data \
+    -s /path/to/split_data \
+    -a /path/to/assembly_dir

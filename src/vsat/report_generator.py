@@ -10,7 +10,10 @@ the organization of processed sequence files into a structured directory.
 import shutil
 from pathlib import Path
 import pandas as pd
-from . import data_handler, snp_analyzer
+from . import data_handler, snp_analyzer, logger as vsat_logger
+
+# Set up logging with colored output.
+logger = vsat_logger.setup_logger(__name__)
 
 
 # Templates for generating descriptive text in the SNP results report.
@@ -56,22 +59,24 @@ def align_stat(
     output_file = output_dir / "alignment_statistics.xls"
     # Using 'gbk' encoding for better compatibility with some versions of Excel.
     with open(output_file, "w", encoding="gbk") as stat:
-        header = ['Sample', 'whole genome'] + list(ref_peptides_dict.keys())
+        header = ["Sample", "whole genome"] + list(ref_peptides_dict.keys())
         stat.write("\t".join(header) + "\n")
 
         for sample, sample_seq in aligned_genome_seq_dict.items():
             row_data = [
                 sample,
-                snp_analyzer.cal_identity(seq1=ref_seq, seq2=sample_seq)
+                snp_analyzer.cal_identity(seq1=ref_seq, seq2=sample_seq),
             ]
 
             # Calculate and append identity for each peptide region
             for product_name, coding_range in ref_peptides_dict.items():
-                ref_nuc_seq = ref_seq[coding_range[0] - 1: coding_range[1]]
-                qry_nuc_seq = sample_seq[coding_range[0] - 1: coding_range[1]]
+                ref_nuc_seq = ref_seq[coding_range[0] - 1 : coding_range[1]]
+                qry_nuc_seq = sample_seq[coding_range[0] - 1 : coding_range[1]]
                 ref_aa_seq = snp_analyzer.get_aa_seq(nuc_seq=ref_nuc_seq)
                 qry_aa_seq = snp_analyzer.get_aa_seq(nuc_seq=qry_nuc_seq)
-                row_data.append(snp_analyzer.cal_identity(seq1=ref_aa_seq, seq2=qry_aa_seq))
+                row_data.append(
+                    snp_analyzer.cal_identity(seq1=ref_aa_seq, seq2=qry_aa_seq)
+                )
 
             stat.write("\t".join(row_data) + "\n")
 
@@ -120,7 +125,10 @@ def write_snp_results_to_txt(
                             mutates_dict[nuc_site],
                             product_name,
                         ) + snp_analyzer.get_snp_info(
-                            nuc_site=nuc_site, ref_seq=ref_seq, mutated_genome_seq=mutated_genome_seq, coding_range=coding_range
+                            nuc_site=nuc_site,
+                            ref_seq=ref_seq,
+                            mutated_genome_seq=mutated_genome_seq,
+                            coding_range=coding_range,
                         )
                         # Choose template: 4 for non-synonymous, 1 for synonymous
                         template_key = 4 if snp_info[-1] != snp_info[-2] else 1
@@ -153,8 +161,15 @@ def write_snp_results_to_xls(
     output_file = output_dir / "snp_result.xls"
     with open(output_file, "w", encoding="utf-8") as fp:
         header = [
-            "Sample", "Nuc Site", "Mutation", "Product", "AA Pos",
-            "Ref Codon", "Mut Codon", "Ref AA", "Mut AA",
+            "Sample",
+            "Nuc Site",
+            "Mutation",
+            "Product",
+            "AA Pos",
+            "Ref Codon",
+            "Mut Codon",
+            "Ref AA",
+            "Mut AA",
         ]
         fp.write("\t".join(header) + "\n")
 
@@ -180,7 +195,10 @@ def write_snp_results_to_xls(
                             mutates_dict[nuc_site],
                             product_name,
                         ) + snp_analyzer.get_snp_info(
-                            nuc_site=nuc_site, ref_seq=ref_seq, mutated_genome_seq=mutated_genome_seq, coding_range=coding_range
+                            nuc_site=nuc_site,
+                            ref_seq=ref_seq,
+                            mutated_genome_seq=mutated_genome_seq,
+                            coding_range=coding_range,
                         )
                         fp.write("\t".join(map(str, snp_info)) + "\n")
                         break
@@ -226,7 +244,7 @@ def store_sequence(
 
     for sample_seq_file in assembly_dir.glob("*.seq"):
         if sample_seq_file.exists():
-            print(f"Copying {sample_seq_file} to {genome_dir}")
+            logger.info(f"Copying {sample_seq_file} to {genome_dir}")
             shutil.copy(sample_seq_file, genome_dir)
 
     # Create directories for nucleotide and protein sequences
@@ -281,7 +299,9 @@ def generate_html_report(
 
     # --- Alignment Statistics Table ---
     if not align_stat_xls.exists():
-        print(f"Warning: {align_stat_xls} not found. Skipping its section in HTML report.")
+        logger.warning(
+            f"{align_stat_xls} not found. Skipping its section in HTML report."
+        )
         align_stat_html = f"<p>{align_stat_xls} not found.</p>"
     else:
         align_stat_df = pd.read_csv(
@@ -293,12 +313,15 @@ def generate_html_report(
 
     # --- SNP Result Table ---
     if not snp_result_xls.exists():
-        print(f"Warning: {snp_result_xls} not found. Skipping its section in HTML report.")
+        logger.warning(
+            f"{snp_result_xls} not found. Skipping its section in HTML report."
+        )
         snp_html = f"<p>{snp_result_xls} not found.</p>"
     else:
         snp_df = pd.read_csv(
             snp_result_xls, sep="\t", encoding="utf-8", engine="python"
         ).dropna(how="all")
+
         snp_html = snp_df.to_html(
             index=False,
             classes="table table-bordered table-hover",
@@ -310,7 +333,7 @@ def generate_html_report(
     genome_mafft_path = Path("processed_sequences/genome/genome_aligned_colorized.html")
     if (output_dir / genome_mafft_path).exists():
         genome_alignment_html = (
-            f'<h3>Genome Alignment</h3>'
+            f"<h3>Genome Alignment</h3>"
             f'<a href="{genome_mafft_path}" class="file-link" target="_blank">View Full Genome Alignment Report</a>'
         )
     else:
@@ -322,14 +345,14 @@ def generate_html_report(
         # Convert to a relative path for portability
         gene_mafft_relative_path = gene_mafft_file.relative_to(output_dir)
         gene_alignment_html = (
-            f'<h3>Gene Alignment ({gene_dir_name})</h3>'
+            f"<h3>Gene Alignment ({gene_dir_name})</h3>"
             f'<a href="{gene_mafft_relative_path}" class="file-link" target="_blank">Open {gene_dir_name} Alignment in New Window</a>'
             f'<iframe src="{gene_mafft_relative_path}" style="width: 100%; height: 400px; border: 1px solid #ddd; border-radius: 4px; background-color: #fff;"></iframe>'
         )
     else:
         gene_alignment_html = (
-            '<h3>Gene Alignment</h3>'
-            '<p>No specific gene alignment was embedded, but all alignment files are available.</p>'
+            "<h3>Gene Alignment</h3>"
+            "<p>No specific gene alignment was embedded, but all alignment files are available.</p>"
             '<a href="processed_sequences/gene" class="file-link">Browse All Gene Alignment Files</a>'
         )
 
@@ -339,14 +362,14 @@ def generate_html_report(
         # Convert to a relative path for portability
         protein_mafft_relative_path = protein_mafft_file.relative_to(output_dir)
         protein_alignment_html = (
-            f'<h3>Protein Alignment ({protein_dir_name})</h3>'
+            f"<h3>Protein Alignment ({protein_dir_name})</h3>"
             f'<a href="{protein_mafft_relative_path}" class="file-link" target="_blank">Open {protein_dir_name} Alignment in New Window</a>'
             f'<iframe src="{protein_mafft_relative_path}" style="width: 100%; height: 400px; border: 1px solid #ddd; border-radius: 4px; background-color: #fff;"></iframe>'
         )
     else:
         protein_alignment_html = (
-            '<h3>Protein Alignment</h3>'
-            '<p>No specific protein alignment was embedded, but all alignment files are available.</p>'
+            "<h3>Protein Alignment</h3>"
+            "<p>No specific protein alignment was embedded, but all alignment files are available.</p>"
             '<a href="processed_sequences/protein" class="file-link">Browse All Protein Alignment Files</a>'
         )
 
@@ -396,4 +419,4 @@ def generate_html_report(
     with report_file.open("w", encoding="utf-8") as f:
         f.write(html_template)
 
-    print(f"HTML report generated: {report_file}")
+    logger.info(f"HTML report generated:\n - {report_file}")
