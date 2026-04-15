@@ -22,25 +22,22 @@ jobs:
           enable-cache: true
           version: "latest"
 
-      - name: Set up Python venv with uv
-        run: uv venv
-      
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Create virtual environment
+        run: uv venv
 
       - name: Install dependencies
         run: |
-          . venv/bin/activate
           uv pip install -e .
           uv pip install ruff mypy
 
       - name: Run Ruff (Linting)
-        run: ruff check .
+        run: uv run ruff check .
 
       - name: Run Mypy (Type Checking)
-        run: mypy src/vsat
+        run: uv run mypy src/vsat
 
       - name: Build package
         run: uv build
