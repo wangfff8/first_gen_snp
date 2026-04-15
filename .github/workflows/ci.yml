@@ -22,6 +22,9 @@ jobs:
           enable-cache: true
           version: "latest"
 
+      - name: Set up Python venv with uv
+        run: uv venv
+      
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
